@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 
-export function PlayerButtons({ 
+export function PlayerActions({ 
     playerHand, setPlayerHand,
     playerScore, setPlayerScore,
     roundMessage, setRoundMessage,
