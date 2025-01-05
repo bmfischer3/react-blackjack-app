@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import "./App.css";
+import { PlayerButtons } from "./components/PlayerButtons";
 
 function App() {
   const [dealerHand, setDealerHand] = useState([]);
@@ -23,7 +24,7 @@ function App() {
   }, [dealerHand]);
 
   useEffect(() => {
-    if (roundStatus === "round_complete" || roundStatus === "player_aciton_complete") {
+    if (roundStatus === "round_complete" || roundStatus === "player_action_complete") {
       setPlayerActionDisabled(true);
     }
   }, [roundStatus]);
@@ -115,33 +116,6 @@ function App() {
     setRoundMessage("Player Turn");
   }
 
-  // Player action: Hit
-  function PlayerHit() {
-    setRoundStatus("player_turn")
-    const drawnCard = DrawCard();
-    const updatedHand = [...playerHand, drawnCard];
-    setPlayerHand(updatedHand);
-  }
-
-  // React to player bust
-  useEffect(() => {
-    if (playerScore > 21) {
-      setRoundStatus("round_complete")
-      setRoundMessage("Dealer Wins");
-    }
-    else if (playerScore === 21) {
-      setRoundStatus("player_action_complete");
-      setRoundMessage("Dealer Turn");
-      DealerTurn();
-    }
-
-  }, [playerScore]);
-
-  // Player action: Stand
-  function PlayerStand() {
-    setRoundStatus("player_action_complete");
-    DealerTurn();
-  }
 
   // Dealer's turn logic
   function DealerTurn() {
@@ -227,7 +201,7 @@ function App() {
       <div>
         <p>Cards Remaining: {shoeRef.current.length}</p>
         <h2>Message: {roundMessage}</h2>
-        <h4>Round Status: {roundStatus}</h4>
+        {/* <h4>Round Status: {roundStatus}</h4> */}
         <button onClick={StartNewShoe}>Start New Shoe</button>
         <button onClick={DealRound}>Deal Next Round</button>
       </div>
@@ -238,12 +212,51 @@ function App() {
           <p>Dealer Hand: {dealerHand.join(", ")}</p>
           <p>Dealer Total: {dealerScore}</p>
         </div>
-
         <div>
-          <p>Player Hand: {playerHand.join(", ")}</p>
-          <p>Player Total: {playerScore}</p>
-          <button onClick={PlayerHit} disabled={playerActionDisabled}>Hit</button>
-          <button onClick={PlayerStand} disabled={playerActionDisabled}>Stand</button>
+          <PlayerButtons
+            
+            
+            // Left:  What the child reads              --> this is the prop name for the child (it can be anything)
+            // Righ:  What is being passed to the child --> this is the actual state value of the parent.
+
+            playerHand={playerHand}          // Passing state value
+
+
+            // Left:  What the child uses to call the updater function. 
+            // Right: What is being passed from the parent. 
+
+
+            // Why having the set on both sides is okay:
+            // ---> setPlayerHand is just a prop name (it can be anything) you’re defining for the child component. The child doesn’t know or care what the function is called in the parent.
+            // ---> setPlayerHand is the actual updater function provided by useState in the parent.
+            setPlayerHand={setPlayerHand}    // Passing state updater function 
+          
+            
+            playerScore={playerScore}              // playerScore set as the prop, and the value within playerScore is being passed to that prop. 
+
+            // playerScoreA={playerScoreAAA}      
+            // --> playerScoreA is the name that the child component would use.
+            // --> playerScoreAAA, whatever the value of this state is would be passed to the child. 
+
+
+            setPlayerScore={setPlayerScore}        // Passing derived state
+
+            roundStatus={roundStatus}             // Passing round status updater
+            setRoundStatus={setRoundStatus}
+
+
+            roundMessage={roundMessage}           // Pass the round message updater
+            setRoundMessage={setRoundMessage}
+
+            DrawCard={DrawCard}                 // Passing helper function
+            
+            playerActionDisabled={playerActionDisabled}
+            setPlayerActionDisabled={setPlayerActionDisabled}
+
+            DealerTurn={DealerTurn}
+
+
+          />
         </div>
       </div>
     </div>
