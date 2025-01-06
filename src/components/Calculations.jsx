@@ -31,7 +31,6 @@ export function Calculations({
     // Insert the functions and UseEffect() pieces related to calculations here. 
 
 
-    // Evaluate the round
     useEffect(() => {
         if (roundStatus === "init_hand_dealt") {
             let dealer_init_total = GetHandTotal(dealerHand);
@@ -53,6 +52,11 @@ export function Calculations({
                 setRoundResult("dealer_win");
                 setRoundStatus("round_complete");
                 setRoundMessage("Dealer Win");
+            }
+            else {
+                setRoundResult("in_progress");
+                setRoundStatus("player_turn");
+                setRoundMessage("Player Turn");
             }
         }
 
@@ -79,14 +83,35 @@ export function Calculations({
                 setRoundStatus("round_complete");
             }
         }
-    }, [roundStatus, dealerScore, playerScore]);
+
+        else if (roundStatus === "player_turn") {
+                // React to player bust
+
+            if (playerScore > 21) {
+                setRoundStatus("round_complete")
+                setRoundMessage("Dealer Wins");
+            }
+            else if (playerScore === 21) {
+                setRoundStatus("dealer_turn");
+                setRoundMessage("Dealer Turn");
+                DealerTurn();
+            }
+            else {
+                setRoundStatus("player_turn");
+                setRoundMessage("Player Turn");
+                setPlayerActionDisabled(false);
+            }
+    }
+
+
+    }, [roundStatus, dealerScore, playerScore, playerHand, dealerHand]);
 
     return (
 
         <div>
             <p>Cards Remaining: {shoeRef.current.length}</p>
             <h2>Message: {roundMessage}</h2>
-            {/* <h4>Round Status: {roundStatus}</h4> */}
+            <h4>Round Status: {roundStatus}</h4>
             <button onClick={StartNewShoe}>Start New Shoe</button>
             <button onClick={DealRound}>Deal Next Round</button>
             <div>

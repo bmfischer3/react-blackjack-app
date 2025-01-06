@@ -105,6 +105,7 @@ function App() {
     StartNewShoe,
     DealRound,
     GetHandTotal,
+    DealerTurn
   };
 
 
@@ -118,8 +119,11 @@ function App() {
   }, [dealerHand]);
 
   useEffect(() => {
-    if (roundStatus === "round_complete" || roundStatus === "player_action_complete") {
+    if (roundStatus === "round_complete" || roundStatus === "dealer_turn") {
       setPlayerActionDisabled(true);
+    }
+    else {
+      setPlayerActionDisabled(false);
     }
   }, [roundStatus]);
 
@@ -218,30 +222,30 @@ function App() {
 
     // Dealer's turn logic
   function DealerTurn() {
-
-    setRoundStatus("dealer_turn");
-
-    const playDealerTurn = (currentHand) => {
-      const dealerTotal = GetHandTotal(currentHand);
-      if (dealerTotal >= 17) {
-        if (dealerTotal > 21) {
-          setRoundStatus("round_complete");
-          setRoundMessage("Player Win");
-        }
-        else {
-          // Evaluate the round
-          setRoundStatus("dealer_action_complete")
-        }
-      } else if (dealerTotal < 17) {
-        setRoundStatus("dealer_turn")
-        const drawnCard = DrawCard();
-        const updatedHand = [...currentHand, drawnCard];
-        setDealerHand(updatedHand);
-        setTimeout(() => playDealerTurn(updatedHand), 1000); // Add delay for UI feedback
-      };
-    }
-    playDealerTurn(dealerHand);
+    if (roundStatus != "round_complete") {
+      setRoundStatus("dealer_turn");
+      const playDealerTurn = (currentHand) => {
+        const dealerTotal = GetHandTotal(currentHand);
+        if (dealerTotal >= 17) {
+          if (dealerTotal > 21) {
+            setRoundStatus("round_complete");
+            setRoundMessage("Player Win");
+          }
+          else {
+            // Evaluate the round
+            setRoundStatus("dealer_action_complete")
+          }
+        } else if (dealerTotal < 17) {
+          setRoundStatus("dealer_turn")
+          const drawnCard = DrawCard();
+          const updatedHand = [...currentHand, drawnCard];
+          setDealerHand(updatedHand);
+          setTimeout(() => playDealerTurn(updatedHand), 1000); // Add delay for UI feedback
+        };
+      }
+      playDealerTurn(dealerHand);
   }
+}
 
   return (
     <div>

@@ -1,45 +1,31 @@
 import React, { useEffect } from "react";
 
-export function PlayerActions({ 
+export function PlayerActions({
     playerHand, setPlayerHand,
     playerScore, setPlayerScore,
-    roundMessage, setRoundMessage,
-    roundStatus, setRoundStatus, 
+    // roundMessage, setRoundMessage,
+    roundStatus, setRoundStatus,
     setPlayerActionDisabled, playerActionDisabled,
     DrawCard, DealerTurn
 
 }) {
 
-    // States defined
-
-
     // Player action: Hit
     function PlayerHit() {
-        setRoundStatus("player_turn")
         const drawnCard = DrawCard();
         const updatedHand = [...playerHand, drawnCard];
         setPlayerHand(updatedHand);
+        setPlayerActionDisabled(true);
     }
 
     // Player action: Stand
     function PlayerStand() {
-        setRoundStatus("player_action_complete");
-        DealerTurn();
-    }
-
-    // React to player bust
-    useEffect(() => {
-        if (playerScore > 21) {
-            setRoundStatus("round_complete")
-            setRoundMessage("Dealer Wins");
-        }
-        else if (playerScore === 21) {
-            setRoundStatus("player_action_complete");
-            setRoundMessage("Dealer Turn");
+        if (roundStatus != "round_complete") {
             DealerTurn();
         }
+    }
 
-    }, [playerScore]);
+
 
 
     return (
