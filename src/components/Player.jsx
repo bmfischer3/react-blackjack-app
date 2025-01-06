@@ -2,9 +2,8 @@ import React, { useEffect } from "react";
 
 export function PlayerActions({
     playerHand, setPlayerHand,
-    playerScore, setPlayerScore,
-    // roundMessage, setRoundMessage,
-    roundStatus, setRoundStatus,
+    playerScore,
+    roundStatus,
     setPlayerActionDisabled, playerActionDisabled,
     DrawCard, DealerTurn
 
@@ -24,9 +23,6 @@ export function PlayerActions({
             DealerTurn();
         }
     }
-
-
-
 
     return (
         <div>
