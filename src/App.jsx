@@ -16,6 +16,11 @@ function App() {
   const [dealerScore, setDealerScore] = useState(0); // Derived state with useEffect
   const [playerActionDisabled, setPlayerActionDisabled] = useState(false);
 
+  const [betValue, setBetValue] = useState(0);
+  const [activeBetValue, setActiveBetValue] = useState(0);
+  const [bankRoll, setBankRoll] = useState(0);
+
+
 
   const PlayerProps = {
     playerHand,
@@ -77,6 +82,8 @@ function App() {
       setPlayerActionDisabled(false);
     }
   }, [roundStatus]);
+
+
 
 
 
@@ -198,6 +205,47 @@ function App() {
   }
 }
 
+// Handling bet amounts and the bank roll. 
+
+// Betting Calculations
+
+function AddToBetValue(incremental_amount) {
+  // check positive integer
+  // This is for the button
+  // Actively Subtracts from the bank roll
+
+}
+
+function SubtractFromBetValue(incremental_amount) {
+  // check result will be positive integer
+  // Actively adds to the bank roll. 
+}
+
+function SubmitBetValue(bet_amount) {
+  // confirm non-negative integer value
+}
+
+
+function ReturnWinnings(bet_amount) {
+  // if a win, pay out the winnings to the bank roll. 
+}
+
+
+function SearchBar() {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleChange = (event) => {
+    setSearchTerm(event.target.value);
+  }
+
+  const setActiveBetValue = (event) => {
+    event.preventDefault();
+    // handle search logic here
+    console.log(`Searching for ${searchTerm}...`);
+  }
+}
+
+
   return (
     <div>
       <div>
@@ -206,6 +254,12 @@ function App() {
         </div>
         <div>
           <PlayerActions {...PlayerProps}/>
+        </div>
+        <div>
+        <form>
+          <input type="text" />
+          <button type="submit">Confirm Bet & Deal </button>
+        </form>
         </div>
       </div>
     </div>
