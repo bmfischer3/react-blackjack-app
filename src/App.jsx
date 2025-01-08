@@ -12,9 +12,11 @@ function App() {
   const [roundStatus, setRoundStatus] = useState("not_started"); // not_started, init_hand_dealt, player_turn, dealer_turn, dealer_action_complete, round_complete
   const [roundMessage, setRoundMessage] = useState(""); // 'Player Turn', 'Dealer Turn', 'Push', 'Player Win', 'Dealer Win'
   const shoeRef = useRef([]);
+
   const [playerScore, setPlayerScore] = useState(0); // Derived state with useEffect
   const [dealerScore, setDealerScore] = useState(0); // Derived state with useEffect
   const [playerActionDisabled, setPlayerActionDisabled] = useState(false);
+  const [playerBetActionDisabled, setPlayerBetActionDisabled] = useState(false);
 
   const [betSelection, setBetSelection] = useState(0);
   const [betCircle, setBetCircle] = useState(0);
@@ -34,7 +36,9 @@ function App() {
     DrawCard,
     playerActionDisabled,
     setPlayerActionDisabled, 
-    DealerTurn
+    DealerTurn,
+    setPlayerBetActionDisabled,
+    playerBetActionDisabled
   };
 
 
@@ -61,7 +65,9 @@ function App() {
     StartNewShoe,
     DealRound,
     GetHandTotal,
-    DealerTurn
+    DealerTurn,
+    playerBetActionDisabled,
+    setPlayerBetActionDisabled
   };
 
 
@@ -74,6 +80,7 @@ function App() {
     setDealerScore(GetHandTotal(dealerHand));
   }, [dealerHand]);
 
+  // Disable the hit and stand button after standing or the round ends. 
   useEffect(() => {
     if (roundStatus === "round_complete" || roundStatus === "dealer_turn") {
       setPlayerActionDisabled(true);
@@ -83,16 +90,39 @@ function App() {
     }
   }, [roundStatus]);
 
+  // Disable the bet adjustment buttons after hitting
+
+  useEffect(() => {
+
+    if (roundStatus === "player_turn") {
+      return setPlayerBetActionDisabled(true);
+    }
+
+    else if (roundStatus === "round_complete") {
+      return setPlayerBetActionDisabled(false);
+    }
+
+    else if (roundStatus === "init_hand_dealt") {
+      return setPlayerBetActionDisabled(false);
+    }
+
+    // will need to adjust another function to un-freeze the buttons.
 
 
+  }, [roundStatus]);
 
-
+  useEffect(() => {
+    if (betSelection > bankRoll) {
+      // Disable to the increment up button
+    }
+  }, [])
 
 
 
   // Initialize shoe
   function InitializeShoe(deckQuantity = 4) {
 
+    setBankRoll(100);
     setRoundStatus("not_started");
     setRoundMessage("Shoe Starting");
 
@@ -124,6 +154,7 @@ function App() {
     InitializeShoe();
     setRoundStatus("player_turn");
     setRoundResult("not_determined")
+    setPlayerBetActionDisabled(false)
 
     DealRound();
   }
@@ -139,6 +170,7 @@ function App() {
   function DealRound() {
 
     setPlayerActionDisabled(false);
+    setPlayerBetActionDisabled(false);
 
     if (shoeRef.current.length < 30) {
       StartNewShoe();
@@ -226,28 +258,9 @@ function AdjustBetCircle(){
 }
 
 
-
-function SubmitBetValue(bet_amount) {
-  // confirm non-negative integer value
-}
-
-
 function ReturnWinnings(bet_amount) {
-  // if a win, pay out the winnings to the bank roll. 
-}
+  if (roundResult === "player_win") {
 
-
-function SearchBar() {
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const handleChange = (event) => {
-    setSearchTerm(event.target.value);
-  }
-
-  const setActiveBetValue = (event) => {
-    event.preventDefault();
-    // handle search logic here
-    console.log(`Searching for ${searchTerm}...`);
   }
 }
 
@@ -267,10 +280,13 @@ function SearchBar() {
         <div>
           <p>Bet Amount: {betSelection}</p>
 
-          <button onClick={()=>SubtractFromBetValue(1)}>-</button>
-          <button onClick={()=>AddToBetValue(1)}>+</button>
+          <button onClick={()=>SubtractFromBetValue(1)} disabled={playerBetActionDisabled}>-</button>
+          <button onClick={()=>AddToBetValue(1)} disabled={playerBetActionDisabled}>+</button>
           <br></br>
-          <button onClick={()=>AdjustBetCircle(betSelection)}>Adjust betting Circle</button>
+          <button onClick={()=>AdjustBetCircle(betSelection)} disabled={playerBetActionDisabled}>Adjust betting Circle</button>
+        </div>
+        <div>
+          <h2>Player Bank Roll: {bankRoll}</h2>
         </div>
       </div>
     </div>

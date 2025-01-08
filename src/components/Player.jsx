@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 
 export function PlayerActions({
     playerHand, setPlayerHand,
-    playerScore,
+    playerScore, playerBetActionDisabled, setPlayerBetActionDisabled,
     roundStatus,
     setPlayerActionDisabled, playerActionDisabled,
     DrawCard, DealerTurn
@@ -15,6 +15,7 @@ export function PlayerActions({
         const updatedHand = [...playerHand, drawnCard];
         setPlayerHand(updatedHand);
         setPlayerActionDisabled(true);
+        setPlayerBetActionDisabled(true);
     }
 
     // Player action: Stand

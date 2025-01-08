@@ -28,6 +28,7 @@ export function Calculations({
         if (roundStatus === "init_hand_dealt") {
             let dealer_init_total = GetHandTotal(dealerHand);
             let player_init_total = GetHandTotal(playerHand);
+            
 
             if (player_init_total === 21) {
                 if (dealer_init_total === 21) {
@@ -39,6 +40,7 @@ export function Calculations({
                     setRoundResult("player_win");
                     setRoundStatus("round_complete");
                     setRoundMessage("Player Win");
+
                 }
             }
             else if (dealer_init_total === 21) {
