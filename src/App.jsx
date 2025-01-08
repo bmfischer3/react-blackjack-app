@@ -16,8 +16,8 @@ function App() {
   const [dealerScore, setDealerScore] = useState(0); // Derived state with useEffect
   const [playerActionDisabled, setPlayerActionDisabled] = useState(false);
 
-  const [betValue, setBetValue] = useState(0);
-  const [activeBetValue, setActiveBetValue] = useState(0);
+  const [betSelection, setBetSelection] = useState(0);
+  const [betCircle, setBetCircle] = useState(0);
   const [bankRoll, setBankRoll] = useState(0);
 
 
@@ -82,6 +82,7 @@ function App() {
       setPlayerActionDisabled(false);
     }
   }, [roundStatus]);
+
 
 
 
@@ -210,16 +211,21 @@ function App() {
 // Betting Calculations
 
 function AddToBetValue(incremental_amount) {
-  // check positive integer
-  // This is for the button
-  // Actively Subtracts from the bank roll
-
+  setBetSelection(betSelection+incremental_amount)
 }
 
 function SubtractFromBetValue(incremental_amount) {
   // check result will be positive integer
   // Actively adds to the bank roll. 
+  setBetSelection(betSelection-incremental_amount)
 }
+
+function AdjustBetCircle(){
+  let bet_adjustment = betSelection
+  setBetCircle(betCircle + bet_adjustment);
+}
+
+
 
 function SubmitBetValue(bet_amount) {
   // confirm non-negative integer value
@@ -256,10 +262,15 @@ function SearchBar() {
           <PlayerActions {...PlayerProps}/>
         </div>
         <div>
-        <form>
-          <input type="text" />
-          <button type="submit">Confirm Bet & Deal </button>
-        </form>
+          <h3>Bet Circle: {betCircle}</h3>
+        </div>
+        <div>
+          <p>Bet Amount: {betSelection}</p>
+
+          <button onClick={()=>SubtractFromBetValue(1)}>-</button>
+          <button onClick={()=>AddToBetValue(1)}>+</button>
+          <br></br>
+          <button onClick={()=>AdjustBetCircle(betSelection)}>Adjust betting Circle</button>
         </div>
       </div>
     </div>
