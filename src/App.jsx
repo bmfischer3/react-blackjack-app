@@ -35,7 +35,7 @@ function App() {
     setRoundMessage,
     DrawCard,
     playerActionDisabled,
-    setPlayerActionDisabled, 
+    setPlayerActionDisabled,
     DealerTurn,
     setPlayerBetActionDisabled,
     playerBetActionDisabled
@@ -67,7 +67,9 @@ function App() {
     GetHandTotal,
     DealerTurn,
     playerBetActionDisabled,
-    setPlayerBetActionDisabled
+    setPlayerBetActionDisabled,
+    ReturnWinnings, 
+    setBetCircle
   };
 
 
@@ -90,6 +92,14 @@ function App() {
     }
   }, [roundStatus]);
 
+  // Return winnings by updating the bankRoll
+
+  useEffect(() => {
+    if (roundStatus === "round_complete") {
+      ReturnWinnings();
+    }
+  }, [roundStatus])
+
   // Disable the bet adjustment buttons after hitting
 
   useEffect(() => {
@@ -106,23 +116,22 @@ function App() {
       return setPlayerBetActionDisabled(false);
     }
 
-    // will need to adjust another function to un-freeze the buttons.
-
-
   }, [roundStatus]);
 
-  useEffect(() => {
-    if (betSelection > bankRoll) {
-      // Disable to the increment up button
-    }
-  }, [])
 
+  // Update the bankroll after play deals the next hand. Bet circle is locked in when the round is dealt. 
+
+  useEffect(() => {
+    if (roundStatus==="init_hand_dealt") {
+      let current_bank_roll = bankRoll
+      setBankRoll(current_bank_roll - betCircle);
+    }
+    }, [roundStatus]);
 
 
   // Initialize shoe
   function InitializeShoe(deckQuantity = 4) {
 
-    setBankRoll(100);
     setRoundStatus("not_started");
     setRoundMessage("Shoe Starting");
 
@@ -149,6 +158,12 @@ function App() {
 
   // Start a new shoe
   function StartNewShoe() {
+    
+    if (betCircle === 0) {
+      console.error("Must place bet to start round");
+      alert("Must place bet to start round.");
+    }
+    else {
     setDealerHand([]);
     setPlayerHand([]);
     InitializeShoe();
@@ -158,7 +173,7 @@ function App() {
 
     DealRound();
   }
-
+  }
   // Draw a card
   function DrawCard() {
     const drawnCard = shoeRef.current.shift();
@@ -169,6 +184,11 @@ function App() {
   // Deal the initial round
   function DealRound() {
 
+    if (betCircle === 0) {
+      console.error("Must place bet to start round");
+      alert("Must place bet to start round.");
+    }
+    else {
     setPlayerActionDisabled(false);
     setPlayerBetActionDisabled(false);
 
@@ -186,32 +206,33 @@ function App() {
     setRoundResult("in_progress");
     setRoundMessage("Player Turn");
   }
+}
 
 
-    // Helper: Calculate hand total dynamically
-    function GetHandTotal(handArray) {
-      if (!handArray.length) return 0;
+  // Helper: Calculate hand total dynamically
+  function GetHandTotal(handArray) {
+    if (!handArray.length) return 0;
 
-      let aceCount = handArray.filter((card) => card === "A").length;
-      let handTotal = handArray.reduce((total, card) => total + GetCardValue(card), 0);
+    let aceCount = handArray.filter((card) => card === "A").length;
+    let handTotal = handArray.reduce((total, card) => total + GetCardValue(card), 0);
 
-      // Adjust for aces
-      while (handTotal > 21 && aceCount > 0) {
-          handTotal -= 10;
-          aceCount -= 1;
-      }
-      return handTotal;
+    // Adjust for aces
+    while (handTotal > 21 && aceCount > 0) {
+      handTotal -= 10;
+      aceCount -= 1;
+    }
+    return handTotal;
   }
 
 
   // Helper: Get card value
   function GetCardValue(card) {
-      if (card === "A") return 11;
-      if (["K", "Q", "J", "10"].includes(card)) return 10;
-      return parseInt(card, 10);
+    if (card === "A") return 11;
+    if (["K", "Q", "J", "10"].includes(card)) return 10;
+    return parseInt(card, 10);
   }
 
-    // Dealer's turn logic
+  // Dealer's turn logic
   function DealerTurn() {
     if (roundStatus != "round_complete") {
       setRoundStatus("dealer_turn");
@@ -235,44 +256,80 @@ function App() {
         };
       }
       playDealerTurn(dealerHand);
+    }
   }
-}
 
-// Handling bet amounts and the bank roll. 
+  // Handling bet amounts and the bank roll. 
 
-// Betting Calculations
+  // Betting Calculations
 
-function AddToBetValue(incremental_amount) {
-  setBetSelection(betSelection+incremental_amount)
-}
-
-function SubtractFromBetValue(incremental_amount) {
-  // check result will be positive integer
-  // Actively adds to the bank roll. 
-  setBetSelection(betSelection-incremental_amount)
-}
-
-function AdjustBetCircle(){
-  let bet_adjustment = betSelection
-  setBetCircle(betCircle + bet_adjustment);
-}
-
-
-function ReturnWinnings(bet_amount) {
-  if (roundResult === "player_win") {
-
+  function AddToBetValue(incremental_amount) {
+    setBetSelection(betSelection + incremental_amount)
   }
-}
+
+  function SubtractFromBetValue(incremental_amount) {
+    // check result will be positive integer
+    // Actively adds to the bank roll. 
+    setBetSelection(betSelection - incremental_amount)
+  }
+
+  function AdjustBetCircle() {
+    let RequestedBetTotal = SumTotalBet()
+    console.info("bankroll is currently: " + bankRoll);
+    if (RequestedBetTotal <= bankRoll) {
+      console.info("Total Bet is less than, equal to bankRoll")
+      setBetCircle(RequestedBetTotal);
+      setBetSelection(0);
+      return true;
+    } else {
+      alert("You need more money, click the button to get more credits.");
+      console.error("RequestedBetTotal is greater than bankRoll");
+      setBetSelection(0);
+      return false;
+    }
+  }
+
+  // Verify bank roll has sufficient funds to bet. 
+
+  function SumTotalBet() {
+    // Assumes betCircle + betSelection are updated with each change. 
+    console.info("Calculating total bet: " + betCircle + " and " + betSelection)
+    let max_bet = betCircle + betSelection;
+    console.info("max bet is = " + max_bet);
+    return max_bet;
+  }
+
+
+  function ReturnWinnings() {
+    if (roundResult === "player_win") {
+      setBankRoll(bankRoll+(betCircle*2));
+      console.log("bank roll is: " + bankRoll)
+    }
+    else if (roundResult === "push") {
+      setBankRoll(bankRoll+betCircle);
+      console.log("banl roll is: " + bankRoll)
+    }
+    else if (roundResult === "dealer_win") {
+      console.info("Dealer win, no payout.")
+    }
+    else if (roundResult === "in_progress") {
+      console.info("Round in progress, retrying...")
+    }
+    else {
+      console.error("round result is: " + roundResult)
+      console.log("No winnings returned.");
+    }
+  }
 
 
   return (
     <div>
       <div>
         <div>
-          <Calculations {...CalculationProps}/>
+          <Calculations {...CalculationProps} />
         </div>
         <div>
-          <PlayerActions {...PlayerProps}/>
+          <PlayerActions {...PlayerProps} />
         </div>
         <div>
           <h3>Bet Circle: {betCircle}</h3>
@@ -280,13 +337,14 @@ function ReturnWinnings(bet_amount) {
         <div>
           <p>Bet Amount: {betSelection}</p>
 
-          <button onClick={()=>SubtractFromBetValue(1)} disabled={playerBetActionDisabled}>-</button>
-          <button onClick={()=>AddToBetValue(1)} disabled={playerBetActionDisabled}>+</button>
+          <button onClick={() => SubtractFromBetValue(1)} disabled={playerBetActionDisabled}>-</button>
+          <button onClick={() => AddToBetValue(1)} disabled={playerBetActionDisabled}>+</button>
           <br></br>
-          <button onClick={()=>AdjustBetCircle(betSelection)} disabled={playerBetActionDisabled}>Adjust betting Circle</button>
+          <button onClick={() => AdjustBetCircle(betSelection)} disabled={playerBetActionDisabled}>Adjust betting Circle</button>
         </div>
         <div>
           <h2>Player Bank Roll: {bankRoll}</h2>
+          <button onClick={() => setBankRoll(bankRoll+100)}>Get 100 Credits</button>
         </div>
       </div>
     </div>

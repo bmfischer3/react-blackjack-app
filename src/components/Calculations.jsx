@@ -17,8 +17,8 @@ export function Calculations({
     GetHandTotal,
     shoeRef,
     StartNewShoe,
-    DealRound
-
+    DealRound,
+    setBetCircle
 }) {
 
     // Insert the functions and UseEffect() pieces related to calculations here. 
@@ -32,26 +32,27 @@ export function Calculations({
 
             if (player_init_total === 21) {
                 if (dealer_init_total === 21) {
-                    setRoundResult("push");
                     setRoundStatus("round_complete");
+                    setRoundResult("push");
                     setRoundMessage("Push");
+                    
                 }
                 else {
-                    setRoundResult("player_win");
                     setRoundStatus("round_complete");
+                    setRoundResult("player_win");
                     setRoundMessage("Player Win");
 
                 }
             }
             else if (dealer_init_total === 21) {
-                setRoundResult("dealer_win");
                 setRoundStatus("round_complete");
+                setRoundResult("dealer_win");
                 setRoundMessage("Dealer Win");
+                
             }
             else {
-                setRoundResult("in_progress");
                 setRoundStatus("player_turn");
-                setRoundMessage("Player Turn");
+                setRoundMessage("Player Turn");``
             }
         }
 
@@ -61,21 +62,21 @@ export function Calculations({
             const playerTotal = playerScore;
 
             if (dealerTotal > 21) {
+                setRoundStatus("round_complete");
                 setRoundResult("player_win");
                 setRoundMessage("Player Win");
-                setRoundStatus("round_complete");
             } else if (dealerTotal === playerTotal) {
+                setRoundStatus("round_complete");
                 setRoundResult("push");
                 setRoundMessage("Push");
-                setRoundStatus("round_complete");
             } else if (dealerTotal > playerTotal) {
+                setRoundStatus("round_complete");
                 setRoundResult("dealer_win");
                 setRoundMessage("Dealer Win");
-                setRoundStatus("round_complete");
             } else {
-                setRoundResult("dealer_win");
-                setRoundMessage("Player Win");
                 setRoundStatus("round_complete");
+                setRoundResult("player_win");
+                setRoundMessage("Player Win");
             }
         }
 
@@ -83,7 +84,8 @@ export function Calculations({
                 // React to player bust
 
             if (playerScore > 21) {
-                setRoundStatus("round_complete")
+                setRoundStatus("round_complete");
+                setRoundResult("dealer_win")
                 setRoundMessage("Dealer Wins");
             }
             else if (playerScore === 21) {

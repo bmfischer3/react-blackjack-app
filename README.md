@@ -28,7 +28,9 @@ Currently, two official plugins are available:
    1. A bet quantity cannot be bigger than what's available in the bank roll. 
    2. A button is available to re-up the bank roll by 100 units. 
 6. Win pays 1:1, blackjack on initial hand pays 3:2, does not pay 3:2 on splits. 
-7. 
+
+
+
 
 <!-- ## Other Notes
 
