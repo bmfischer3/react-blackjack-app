@@ -5,7 +5,7 @@ export function PlayerActions({
     playerScore,
     roundStatus,
     setPlayerActionDisabled, playerActionDisabled,
-    DrawCard, DealerTurn
+    DrawCard, DealerTurn, setRoundStatus
 
 }) {
 
@@ -15,11 +15,13 @@ export function PlayerActions({
         const updatedHand = [...playerHand, drawnCard];
         setPlayerHand(updatedHand);
         setPlayerActionDisabled(true);
+
     }
 
     // Player action: Stand
     function PlayerStand() {
         if (roundStatus != "round_complete") {
+            setRoundStatus("dealer_turn");
             DealerTurn();
         }
     }
