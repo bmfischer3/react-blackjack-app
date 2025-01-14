@@ -29,7 +29,26 @@ Currently, two official plugins are available:
    2. A button is available to re-up the bank roll by 100 units. 
 6. Win pays 1:1, blackjack on initial hand pays 3:2, does not pay 3:2 on splits. 
 
+## State Management
 
+States Being Managed:
+1. Dealer Hand
+2. Player Hand
+3. Player Bank Roll
+4. Player Bet Selection
+5. Player Bet Circle
+6. Round Status
+7. Round Result
+8. Round Message
+9. Shoe Card Quantity
+
+
+
+(For later implementation)...
+1. Card Count Quantity
+2. True Card Count
+3. Player Correct Decisions
+4. 
 
 
 <!-- ## Other Notes
