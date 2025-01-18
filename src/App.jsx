@@ -8,8 +8,8 @@ const GAME_STATUS = {
     START_SHOE: 'start_shoe',
     START_ROUND: 'start_round',
     DEAL_INIT_HAND: 'deal_init_hand',
-    START_PLAYER_TURN: 'start_player_turn',
-    START_DEALER_TURN: 'start_dealer_turn',
+    PLAYER_TURN_ACTIVE: 'player_turn_active',
+    DEALER_TURN_ACTIVE: 'dealer_turn_active',
     COMPLETE_ROUND: 'complete_round',
 
 }
@@ -123,14 +123,14 @@ function gameReducer(state, action) {
                 ...state,
 
             }
-        case GAME_STATUS.START_PLAYER_TURN:
+        case GAME_STATUS.PLAYER_TURN_ACTIVE:
             return {
                 ...state,
-                playerHand: [...state.playerHand, action.payload.drawn_Card]
-
-
+                roundStatus: "player_turn",
+                roundMessage: "No blackjacks, player turn",
+                playerHand: [...state.playerHand, action.payload.drawn_card]
             }
-        case GAME_STATUS.START_DEALER_TURN:
+        case GAME_STATUS.DEALER_TURN_ACTIVE:
             return {
                 ...state,
             }
@@ -216,11 +216,16 @@ function App() {
         //     alert("Must place bet to start round.");
         //     }
 
-        else { 
+        else {
+
             let dealerHand = [drawCard()]
             let playerHand = [drawCard()]
             dealerHand = [...dealerHand, drawCard()]
             playerHand = [...playerHand, drawCard()]
+
+
+            // TODO: Add in if statements to check for blackjack. 
+
 
             dispatchGame( {
                 type: GAME_STATUS.START_ROUND,
@@ -232,6 +237,12 @@ function App() {
       }
     }
     
+
+    function checkBlackjack() {
+        // TODO: If statement to check the current game state. Then check accordingly. 
+    }
+
+
     function drawCard() {
         const drawnCard = gameState.shoe.shift();
         return drawnCard;
@@ -240,16 +251,16 @@ function App() {
     function playerAction(action) {
         switch(action) {
             case PLAYER_ACTIONS.PLAYER_HIT:
-                console.log("Successful player hit");
-                let drawn_card = drawCard()
-                console.log(drawn_card)
                 dispatchGame( {
-                    type: GAME_STATUS.START_PLAYER_TURN,
+                    type: GAME_STATUS.PLAYER_TURN_ACTIVE,
                     payload: {
-                        drawn_card: drawn_card
+                        drawn_card: drawCard()
                     }
                 })
             case PLAYER_ACTIONS.PLAYER_STAND:
+                dispatchGame( {
+                    type: GAME_STATUS.DEALER_TURN_ACTIVE,
+                })
                     
         }
     }
@@ -277,7 +288,7 @@ function App() {
             </div>
             <div>
                 <button onClick={() => playerAction(PLAYER_ACTIONS.PLAYER_HIT)}>Hit</button>
-                <button>Stand</button>
+                <button onClick={() => playerAction(PLAYER_ACTIONS.PLAYER_STAND)}>Stand</button>
                 <button>Double Down</button>
             </div>
             <br />
