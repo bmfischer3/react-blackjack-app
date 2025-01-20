@@ -4,13 +4,21 @@ import { PlayerActions } from "./components/Player";
 import { Calculations } from "./components/Calculations";
 
 
-const GAME_STATUS = {
-    START_SHOE: 'start_shoe',
-    START_ROUND: 'start_round',
-    DEAL_INIT_HAND: 'deal_init_hand',
+// TODO: Make some differentiation between ROUND_STATUS and round_status. 
+
+/**
+ * Each 
+ * @date January 19th 2025, 8:25:58 pm
+ * @author Brian Fischer
+ *
+ */
+const ROUND_STATUS = {
+    INIT_SHOE: 'shoe_initialized',
+    ROUND_INIT: 'round_initialized',
+    INIT_HANDS: 'init_hands_dealt',
     PLAYER_TURN_ACTIVE: 'player_turn_active',
     DEALER_TURN_ACTIVE: 'dealer_turn_active',
-    COMPLETE_ROUND: 'complete_round',
+    ROUND_COMPLETE: 'round_complete'
 
 }
 
@@ -38,7 +46,7 @@ const BET_CIRCLE_ACTIONS = {
 
 const initialGameState = {
     roundStatus: "not_started",
-    roundresult: "in_progress",
+    roundResult: "in_progress",
     roundMessage: "Round has not yet started.",
     playerActionDisabled: false,
     playerBetActionDisabled: false,
@@ -48,13 +56,13 @@ const initialGameState = {
     dealerScore: 0,
     playerHand: [],
     playerScore: 0,
-    betCircle: 0,
-    bankRoll: 0,
-    betCount: 0
+
 }
 
 const initialBetState = {
-    betCount: 0
+    betCount: 0,
+    betCircle: 0,
+    bankRoll: 0,
 }
 
 
@@ -67,31 +75,31 @@ function betReducer(state, action) {
         case BET_CIRCLE_ACTIONS.BET_CIRCLE_PLUS_ONE:
             return {
                 ...state,
-                betCount: state.betCount + 1
+                betCircle: state.betCircle + 1
             };
 
         case BET_CIRCLE_ACTIONS.BET_CIRCLE_PLUS_FIVE:
             return {
                 ...state,
-                betCount: state.betCount + 5
+                betCircle: state.betCircle + 5
             };
 
         case BET_CIRCLE_ACTIONS.BET_CIRCLE_PLUS_TWENTY_FIVE:
             return {
                 ...state,
-                betCount: state.betCount + 25
+                betCircle: state.betCircle + 25
             };
 
         case BET_CIRCLE_ACTIONS.BET_CIRCLE_PLUS_ONE_HUNDRED:
             return {
                 ...state,
-                betCount: state.betCount + 100
+                betCircle: state.betCircle+ 100
             };
 
         case BET_CIRCLE_ACTIONS.CLEAR_BET_CIRCLE:
             return {
                 ...state,
-                betCount: 0
+                betCircle: 0
             };
         default:
             return state
@@ -108,52 +116,56 @@ function gameReducer(state, action) {
     // This makes each case of the reducer more re-usable throughout the code. 
 
     switch (action.type) {
-        case GAME_STATUS.START_SHOE:
+        case ROUND_STATUS.INIT_SHOE:
             return {
                 ...state,
                 roundStatus: "shoe_initialized",
                 roundResult: "starting_round",
                 roundMessage: "Shoe has been initialzied, dealing cards next...",
                 shoe: action.payload.shoe,
-                shoeQuantity: action.payload.shoe.length
+                shoeQuantity: action.payload.shoe.length,
+                playerActionDisabled: false,
             }
-        case GAME_STATUS.START_ROUND:
+        case ROUND_STATUS.INIT_HANDS:
             return {
                 ...state,
-                roundStatus: "init_hands_dealt",
-                roundResult: "in_progress",
-                roundMessage: "Initial hands dealt",
-                dealerHand: action.payload.dealerHand,
-                dealerScore: action.payload.dealerScore,
-                playerHand: action.payload.playerHand,
-                playerScore: action.payload.playerScore
+                roundStatus: "next_hands_dealt",
+                playerActionDisabled: false
             }
-        case GAME_STATUS.DEAL_INIT_HAND:
-            return {
-                ...state,
 
-            }
-        case GAME_STATUS.PLAYER_TURN_ACTIVE:
+        case ROUND_STATUS.PLAYER_TURN_ACTIVE:
             return {
                 ...state,
-                roundStatus: "player_turn",
-                roundMessage: "No blackjacks, player turn",
-                playerHand: action.payload.playerHand,
-                playerScore: action.payload.playerScore
+                // optional chaining used to prevent having to provide payloads for every update.
+                roundStatus: action.payload?.roundStatus || state.roundStatus,
+                roundMessage: action.payload?.roundMessage || state.roundMessage,
+                playerHand: action.payload?.playerHand || state.playerHand,
+                playerScore: action.payload?.playerScore || state.playerScore,
+                dealerHand: action.payload?.dealerHand || state.dealerHand,
+                dealerScore: action.payload?.dealerScore || state.dealerScore,
+                playerActionDisabled: false
             }
-        case GAME_STATUS.DEALER_TURN_ACTIVE:
+        case ROUND_STATUS.DEALER_TURN_ACTIVE:
             return {
                 ...state,
                 roundStatus: "dealer_turn",
-                // roundResult: action.payload.roundResult,
-                // roundMessage: action.payload.roundMessage
+                roundResult: "in_progress",
+                roundMessage: action.payload.roundMessage,
+                playerActionDisabled: true,
+                dealerHand: action.payload?.dealerHand || state.dealerHand,
+                dealerScore: action.payload?.dealerScore || state.dealerScore
             }
-        case GAME_STATUS.COMPLETE_ROUND:
+        case ROUND_STATUS.ROUND_COMPLETE:
             return {
                 ...state,
-                // roundStatus: action.payload.roundStatus,
-                // roundResult: action.payload.roundResult,
-                // roundMessage: action.payload.roundMessage
+                roundStatus: action.payload.roundStatus,
+                roundResult: action.payload.roundResult,
+                roundMessage: action.payload.roundMessage,
+                playerHand: action.payload?.playerHand || state.playerHand,
+                playerScore: action.payload?.playerScore || state.playerScore,
+                dealerHand: action.payload?.dealerHand || state.dealerHand,
+                dealerScore: action.payload?.dealerScore || state.dealerScore,
+                playerActionDisabled: true
             }
     }
 }
@@ -174,17 +186,240 @@ function App() {
     const [gameState, dispatchGame] = useReducer(gameReducer, initialGameState)
 
 
-// Main game flow control
-    function main() {
+    // Main game flow control
+    function main(action) {
         // The main controller for the application that calls and directs the appropriate state updates. 
         // Helper functions below breakdown complex tasks and return simplified responses. 
         // main() then updates the varying states displayed on screen. 
 
-        
+        // main() is initiated after starting a new shoe/round. 
+        // main() is initiated whenever a gameState or roundStatus chanages. 
+        if (action.playerAction) {
+            switch (action.playerAction) {
+                case PLAYER_ACTIONS.PLAYER_HIT: 
+                    console.info("Player Hit action hit")
+                    const updatedPlayerHand = [...gameState.playerHand, drawCard()]
+                    console.info("Updated Player Hand: " + updatedPlayerHand)
+                    const updatedPlayerScore = GetHandTotal(updatedPlayerHand) 
+                    if (updatedPlayerScore > 21) {
+                        dispatchGame( {
+                            type: ROUND_STATUS.ROUND_COMPLETE,
+                            payload: {
+                                playerHand: updatedPlayerHand,
+                                playerScore: updatedPlayerScore,
+                                roundStatus: "round_complete",
+                                roundResult: "dealer_win",
+                                roundMessage: "Dealer Win - Player Bust",
+                            }
+                        })
+                    }
+
+                    else {
+                        dispatchGame( {
+                            type: ROUND_STATUS.PLAYER_TURN_ACTIVE,
+                            payload: {
+                                roundStatus: "player_turn",
+                                roundMessage: "Player Turn",
+                                playerHand: updatedPlayerHand,
+                                playerScore: updatedPlayerScore,
+                            }
+                        })
+                    }
+                    break;
+                case PLAYER_ACTIONS.PLAYER_STAND:
+                    dispatchGame( {
+                        type: ROUND_STATUS.DEALER_TURN_ACTIVE,
+                        payload: {
+                            roundMessage: "Dealer Turn in progress..."
+                        }
+                    })
+
+                    let updatedDealerHand = [...gameState.dealerHand];
+                    let updatedDealerScore = GetHandTotal(updatedDealerHand)
+
+                    while (updatedDealerScore < 17) {
+                        updatedDealerHand.push(drawCard());
+                        updatedDealerScore = GetHandTotal(updatedDealerHand);
+                        console.info("Updated Dealer Score: " + updatedDealerScore)
+                        setTimeout(() => playDealerTurn(updatedHand), 1000); // Add delay for UI feedback
+                        dispatchGame( {
+                            type: ROUND_STATUS.DEALER_TURN_ACTIVE,
+                            payload: {
+                                roundMessage: "Dealer turn in progress",
+                                roundResult: "in_progress",
+                                roundStatus: ROUND_STATUS.DEALER_TURN_ACTIVE,
+                                dealerHand: updatedDealerHand,
+                                dealerScore: updatedDealerScore
+                            }
+                        })
+                    }
+
+                    if (updatedDealerScore > 21) {
+                        dispatchGame( {
+                            type: ROUND_STATUS.ROUND_COMPLETE,
+                            payload: {
+                                roundMessage: "Player Win - Dealer bust",
+                                roundStatus: ROUND_STATUS.ROUND_COMPLETE,
+                                roundResult: "player_win"
+                            }
+                        })
+                    }
+                    else if (updatedDealerScore > gameState.playerScore) {
+                        dispatchGame( {
+                            type: ROUND_STATUS.ROUND_COMPLETE,
+                            payload: {
+                                roundMessage: "Dealer Win - Dealer has more than player.",
+                                roundStatus: ROUND_STATUS.ROUND_COMPLETE,
+                                roundResult: "dealer_win"
+                            }
+                        })
+                    }
+                    else if (updatedDealerScore === gameState.playerScore) {
+                        dispatchGame(
+                            {
+                                type: ROUND_STATUS.ROUND_COMPLETE,
+                                payload: {
+                                    roundStatus: "round_complete",
+                                    roundResult: "push",
+                                    roundMessage: "Push: Dealer and Player are tied."
+                                }
+                            }
+                        )
+                    }
+                    else if (updatedDealerScore < gameState.playerScore) {
+                        dispatchGame(
+                            {
+                                type: ROUND_STATUS.ROUND_COMPLETE,
+                                payload: {
+                                    roundStatus: "round_complete",
+                                    roundResult: "player_win",
+                                    roundMessage: "Player Win: Player has more than dealer."
+                                }
+                            }
+                        )
+                    }
+
+                }
+        }
+        else if (action.roundStatus) {
+            switch (action.roundStatus) {
+                case ROUND_STATUS.INIT_SHOE:
+                    // User presses --> "Start New Shoe"
+                    const initShoe = initializeShoe();
+                    console.info("initShoe is: " + initShoe)
+                    dispatchGame({
+                        type: ROUND_STATUS.INIT_SHOE,
+                        payload: {
+                            shoe: initShoe,
+                            shoeQuantity: initShoe.length,
+                            playerHand: [],
+                            dealerHand: []
+                        }
+                    })
+                    break;
+                case ROUND_STATUS.INIT_HANDS:
+                    // Users clicks --> "Deal round" 
+                    if (gameState.shoeQuantity < 60) {
+                        let initShoe = initializeShoe();
+                        dispatchGame({
+                            type: ROUND_STATUS.INIT_SHOE,
+                            payload: {
+                                shoe: initShoe
+                            }
+                        })
+                        break;
+                    }
+
+                    else {
+                        let [dealerInitHand, playerInitHand] = dealRound();
+                        console.info("dealerInitHand: " + dealerInitHand)
+                        console.info("playerInitHand: " + playerInitHand)
+                        console.info("Round Message: " + gameState.roundMessage)
+
+                        // Check for blackjack in dealer and player hand. 
+                        // LATER TODO: Check if the up card is an ace to offer insurance. 
+
+                        if (checkInitBlackjack(playerInitHand) === true) {
+                            if (checkInitBlackjack(dealerInitHand) === true) {
+                                dispatchGame(
+                                    {
+                                        type: ROUND_STATUS.ROUND_COMPLETE,
+                                        payload: {
+                                            roundStatus: "round_complete",
+                                            roundResult: "push",
+                                            roundMessage: "Push: Player and dealer both have blackjack.",
+                                            playerHand: playerInitHand,
+                                            dealerHand: dealerInitHand
+                                        }
+                                    }
+                                )
+                            }
+                            else {
+                                dispatchGame(
+                                    {
+                                        type: ROUND_STATUS.ROUND_COMPLETE,
+                                        payload: {
+                                            roundStatus: "round_complete",
+                                            roundResult: "player_win",
+                                            roundMessage: "Player Win: Player has blackjack, dealer does not.",
+                                            playerHand: playerInitHand,
+                                            dealerHand: dealerInitHand
+                                        }
+                                    }
+                                )
+                            }
+                            break;
+                        }
+                        else if (checkInitBlackjack(dealerInitHand) === true) {
+                            dispatchGame(
+                                {
+                                    type: ROUND_STATUS.ROUND_COMPLETE,
+                                    payload: {
+                                        roundStatus: "round_complete",
+                                        roundResult: "dealer_win",
+                                        roundMessage: "Dealer Win: Dealer has blackjack, player does not.",
+                                        playerHand: playerInitHand,
+                                        dealerHand: dealerInitHand
+                                    }
+                                }
+                            )
+                            break;
+                        }
+                        else {
+                            dispatchGame(
+                                {
+                                    type: ROUND_STATUS.PLAYER_TURN_ACTIVE,
+                                    payload: {
+                                        playerHand: playerInitHand,
+                                        dealerHand: dealerInitHand,
+                                        playerScore: GetHandTotal(playerInitHand),
+                                        dealerScore: GetHandTotal(dealerInitHand),
+                                        roundStatus: "in_progress",
+                                        roundResult: "not_determined",
+                                        roundMessage: "No Init BJs, player turn."
+                                    }
+                                }
+                            )
+                        break;
+                        }
+                    }
+                    break;
+
+
+                    break;
+                case ROUND_STATUS.DEALER_TURN_ACTIVE:
+                    //
+                    break;
+                case ROUND_STATUS.ROUND_COMPLETE:
+                    // 
+                    break;
+
+            }
+        }
 
     }
 
-// Betting
+    // Betting
 
     function modifyBet(amount) {
         switch (amount) {
@@ -209,10 +444,19 @@ function App() {
         }
     }
 
-// Payouts
+
+    function payoutBlackjackWin() {
+        return false
+    }
+
+    function payoutStandardWin() {
+        return false
+    }
+
+    // Payouts
 
 
-// Starting a new shoe
+    // Return a new shoe
     function initializeShoe(deckQuantity = 6) {
         const singleDeck = [
             "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K",
@@ -229,217 +473,89 @@ function App() {
             const j = Math.floor(Math.random() * (i + 1));
             [initShoe[i], initShoe[j]] = [initShoe[j], initShoe[i]];
         };
-        dispatchGame({
-            type: GAME_STATUS.START_SHOE,
-            payload: {
-                shoe: initShoe
-            }
-        })
         console.log("Shoe initialized:", initShoe);
+
+        return initShoe;
     }
 
 
-// Dealing a round
+
+    /**
+     * Deals initial round of cards for dealer and player. 
+     * @date January 19th 2025, 9:27:28 pm
+     * @author Brian Fischer
+     *
+     * @returns {[]} - Retuns an array of arrays of player/dealer cards [[d1, d2,], [p1, p2]] 
+     */
     function dealRound() {
-        if (gameState.shoeQuantity < 30) {
-            // start new shoe. 
-
-        }
-        // else if (gameState.betCircle === 0) {
-        //     console.error("Must place bet to start round");
-        //     alert("Must place bet to start round.");
-        //     }
-
-        else {
-
-            let dealerHand = [drawCard()]
-            let playerHand = [drawCard()]
-            dealerHand = [...dealerHand, drawCard()]
-            playerHand = [...playerHand, drawCard()]
-
-
-            // TODO: Add in if statements to check for blackjack. 
-
-
-            dispatchGame({
-                type: GAME_STATUS.START_ROUND,
-                payload: {
-                    dealerHand: dealerHand,
-                    dealerScore: GetHandTotal(dealerHand),
-                    playerHand: playerHand,
-                    playerScore: GetHandTotal(playerHand)
-                }
-            })
-        }
+        console.info("DealRound hit")
+        let dealerInitHand = [drawCard(),drawCard()]
+        let playerInitHand = [drawCard(),drawCard()]
+        return [dealerInitHand, playerInitHand]
     }
 
+    /**
+     * Draws a card from the shoe and returns the drawnCard
+     * @date January 19th 2025, 7:38:00 pm
+     * @author Brian Fischer
+     *
+     * @returns {*} 
+     */
     function drawCard() {
         const drawnCard = gameState.shoe.shift();
-        console.log(gameState.shoe);
-        // dispatchGame( {
-        //     payload: {
-        //         shoeQuantity: gameState.shoe.length
-        //     }
-        // })
         return drawnCard;
     }
 
 
 
 
-// Hand-specific functions
+    // Hand-specific functions
     // Helper: Determine if the hand has busted or not. 
-    function handBust(hand_array) {
-        // evalutes to t/f
-        // t === hand total > 21
-        // f === hand total <= 21
+    // function handBust(hand_array) {
+    //     // evalutes to t/f
+    //     // t === hand total > 21
+    //     // f === hand total <= 21
 
-        if (GetHandTotal(hand_array) > 21) {
-            return true
-        } 
-        else {
-            return false
-        }
+    //     if (GetHandTotal(hand_array) > 21) {
+    //         return true
+    //     }
+    //     else {
+    //         return false
+    //     }
 
-    }
+    // }
 
     // Helper: Determine if the dealer is supposed to stand. 
-    function dealerStand(hand_array) {
-        // evals to t/f --> "Should the dealer stand?"
-        // t === dealer is equal to or greater than  17. 
-        // f === dealer is less than 17. 
+    // function dealerStand(hand_array) {
+    //     // evals to t/f --> "Should the dealer stand?"
+    //     // t === dealer is equal to or greater than  17. 
+    //     // f === dealer is less than 17. 
 
-        // Note: Being over 21 is irrelevant here, only looking to determine if the dealer is supposed to stand. 
+    //     // Note: Being over 21 is irrelevant here, only looking to determine if the dealer is supposed to stand. 
 
-        // TODO: Account for hard/soft 17, make it a switch that can be turned on and off. 
+    //     // TODO: Account for hard/soft 17, make it a switch that can be turned on and off. 
 
-        if (GetHandTotal(hand_array) < 17) {
-            return false
-        } else {
+    //     if (GetHandTotal(hand_array) < 17) {
+    //         return false
+    //     } else {
+    //         return true
+    //     }
+    // }
+
+    /**
+     * Helper: Determine if dealer or player was a dealt a blackjack on the round's initial two cards
+     * @param {array} hand_array - 2 item array representing player or dealer hand. 
+     * @returns {boolean} - returns true if hand_array === 21, else false 
+     */
+    function checkInitBlackjack(hand_array) {
+        if (GetHandTotal(hand_array) === 21) {
             return true
         }
-    }
-
-    // Helper: Determine if dealer or player was a dealt a blackjack on the round's initial two cards
-    function checkInitBlackjack(hand_array) {
-        // Checks for blackjack on the dealing of the initial hand. 
-        // Return t/f based on initial hand. 
-
-        if (gameState === GAME_STATUS.DEAL_INIT_HAND) {
-            if (GetHandTotal(hand_array) === 21) {
-                return true
-            }
-            else return false
-        }
         else {
-            console.log("checkInitBlackjack called when gameState != DEAL_INIT_HAND")
+            return false
         }
     }
 
-        // function evalRound();
-        //     if (gameState === GAME_STATUS.DEAL_INIT_HAND) {
-        //         // Check dealer hand first
-        //         if (GetHandTotal(dealerHand) === 21) {
-        //             if (GetHandTotal(playerHand) === 21) {
-        //                 // Both dealer and player have 21. 
-        //                 dispatchGame({
-        //                     // 'type' dictates which state case the reducer will update.
-        //                     type: GAME_STATUS.COMPLETE_ROUND,
-        //                     payload: {
-        //                         // keys here must match the keys outlined in the payload reference. 
-        //                         roundStatus: "round_complete",
-        //                         roundResult: "push",
-        //                         roundMessage: "Push: Player and Dealer both have Blackjack."
-        //                     }
-        //                 })
-        //                 return roundResult;
-        //             } else {
-        //                 // Dealer has 21, player does not. 
-        //                 dispatchGame({
-        //                     type: GAME_STATUS.COMPLETE_ROUND,
-        //                     payload: {
-        //                         roundStatus: "round_complete",
-        //                         roundResult: "dealer_win",
-        //                         roundMessage: "Dealer Win: Dealer has blackjack."
-        //                     }
-        //                 })
-        //                 return roundResult;
-        //             }
-        //         }
-        //         else if (GetHandTotal(playerHand) === 21) {
-        //             // Player has 21, dealer does not. 
-        //             dispatchGame({
-        //                 type: GAME_STATUS.COMPLETE_ROUND,
-        //                 payload: {
-        //                     roundStatus: "round_complete",
-        //                     roundResult: "player_win",
-        //                     roundMessage: "Player Win: Player has blackjack."
-        //                 }
-        //             })
-
-        //         }
-        //         else {
-        //             // Neither player nor dealer has 21. 
-        //             dispatchGame({
-        //                 type: GAME_STATUS.PLAYER_TURN_ACTIVE
-        //             })
-        //         }
-        //     }
-        //     else {
-        //         console.error("Blackjack not evaluated, gameState is not equal to a valid status.")
-        //     }
-        //     else if (gameState === GAME_STATUS.PLAYER_TURN_ACTIVE) {
-        //             if (GetHandTotal(playerHand) === 21) {
-        //                 // Player reaches 21. End turn.
-        //                 dispatchGame({
-        //                     type: GAME_STATUS.DEALER_TURN_ACTIVE,
-        //                     payload: {
-        //                         roundMessage: "Player has 21, dealer turn in progress."
-        //                     }
-        //                 })
-        //             } else if (GetHandTotal(playerHand < 21)) {
-        //                 dispatchGame({
-        //                     type: GAME_STATUS.PLAYER_TURN_ACTIVE,
-        //                     payload: {
-        //                         roundMessage: "Player has not busted, can continue to hit or stand."
-        //                     }
-        //                 })
-        //             }
-        //         }
-
-        //         else if (gameState === GAME_STATUS.DEALER_TURN_ACTIVE) {
-        //             if (GetHandTotal(dealerHand) === 21) {
-        //                 dispatchGame({
-        //                     type: GAME_STATUS.DEALER_TURN_ACTIVE,
-        //                     payload: {
-        //                         roundMessage: "Dealer has 21."
-        //                     }
-        //                 })
-
-        //                 if (GetHandTotal(playerHand) === 21) {
-        //                     // Player and dealer both reach 21. 
-        //                     dispatchGame({
-        //                         type: GAME_STATUS.DEALER_TURN_ACTIVE,
-        //                         payload: {
-        //                             roundMessage: "Push: Dealer and player both have 21"
-        //                         }
-        //                     })
-        //                 }
-        //             } else {
-        //                 // Only the dealer has 21. 
-        //                 dispatchGame({
-        //                     type: GAME_STATUS.COMPLETE_ROUND,
-        //                     payload: {
-        //                         roundMessage: "Dealer Win: Dealer has 21, player does not."
-        //                     }
-        //                 })
-        //             }
-        //         }
-        //     }
-
-
-    // Helper: Draw a single card from the shoe.
- 
     // Helper: Calculate hand total dynamically
     function GetHandTotal(handArray) {
         if (!handArray.length) return 0;
@@ -466,23 +582,6 @@ function App() {
 
 
 
-    function playerAction(action) {
-        switch (action) {
-            case PLAYER_ACTIONS.PLAYER_HIT:
-                let updatedHand = [...gameState.playerHand, drawCard()]
-                dispatchGame({
-                    type: GAME_STATUS.PLAYER_TURN_ACTIVE,
-                    payload: {
-                        playerHand: updatedHand,
-                        playerScore: updatedPlayerScore
-                    }
-                })
-            case PLAYER_ACTIONS.PLAYER_STAND:
-                dispatchGame({
-                    type: GAME_STATUS.DEALER_TURN_ACTIVE,
-                })
-        }
-    }
 
     // OnClick function call must be passed as a reference; () => modifyBet(1)
     // This ensures 
@@ -490,81 +589,80 @@ function App() {
 
 
 
-return (
-    <>
-        <div>
-            <button onClick={() => initializeShoe()}>Start New Shoe</button>
-            <button onClick={() => dealRound()}>Deal Next Round</button>
-        </div>
-        <div>
-            Dealer Up Card: {gameState.dealerHand[0]}
+    return (
+        <>
+            <div>
+                <button onClick={() => main( {roundStatus: ROUND_STATUS.INIT_SHOE})}>Start New Shoe</button>
+                <button onClick={() => main( {roundStatus: ROUND_STATUS.INIT_HANDS})}>Deal Next Round</button>
+            </div>
+            <div>
+                Dealer Up Card: {gameState.dealerHand[0]}
+                <br />
+                Dealer Hand: {gameState.dealerHand.join(", ")}
+                <br />
+            </div>
+            <div>
+                Player Hand: {gameState.playerHand.join(", ")}
+                <br />
+                Player Total: {gameState.playerScore}
+            </div>
+            <div>
+                <button onClick={() => main( {playerAction: PLAYER_ACTIONS.PLAYER_HIT} )} disabled={gameState.playerActionDisabled}>Hit</button>
+                <button onClick={() => main( {playerAction: PLAYER_ACTIONS.PLAYER_STAND} )} disabled={gameState.playerActionDisabled}>Stand</button>
+            </div>
             <br />
-            {/* Dealer Hand: {gameState.dealerHand.join(", ")} */}
+            <div>
+                {/* Shoe Size: {gameState.shoeQuantity} */}
+
+            </div>
+
             <br />
-        </div>
-        <div>
-            Player Hand: {gameState.playerHand.join(", ")}
-            <br />
-            Player Total: {gameState.playerScore}
-        </div>
-        <div>
-            <button onClick={() => playerAction(PLAYER_ACTIONS.PLAYER_HIT)}>Hit</button>
-            <button onClick={() => playerAction(PLAYER_ACTIONS.PLAYER_STAND)}>Stand</button>
-            <button>Double Down</button>
-        </div>
-        <br />
-        <div>
-            {/* Shoe Size: {gameState.shoeQuantity} */}
-
-        </div>
-
-        <br />
-        <div>
+            <div>
 
 
-            {/* Curly braces because it's a javascript expression. 
+                {/* Curly braces because it's a javascript expression. 
                 Secondly, betState is the current state object managed by the reducer hook. 
                 betCount is the property of that state. 
                 Thus, {state.property} is a dynamicaly rendered value.  */}
 
-            {/* betState is the object holding the current state of the reducer. 
+                {/* betState is the object holding the current state of the reducer. 
 
                 betCount is a key within betState that holds teh numeric value of the player's current bet.
 
                 {betState.betCount} retrieves the value of betCount from betState and injects it into the JSX. */}
 
 
-            Bet Circle: {betState.betCount}
+                Bet Circle: {betState.betCircle}
 
-        </div>
-        <br></br>
-        <div>
-            {/* Call a function reference, rather than invoking it immediately. 
+            </div>
+            <br></br>
+            <div>
+                {/* Call a function reference, rather than invoking it immediately. 
                 Referencing it only calls the function with the event, button click, occurs. 
                 Otherwise the function wil be called every time a render is done.   */}
-            <button onClick={() => modifyBet(1)}>Add 1</button>
-            <button onClick={() => modifyBet(5)}>Add 5</button>
-            <button onClick={() => modifyBet(25)}>Add 25</button>
-            <button onClick={() => modifyBet(100)}>Add 100</button>
-            <button onClick={() => modifyBet('c')}>Clear</button>
-        </div>
-        <br></br>
-        <div>
-            Player Bank Roll:
-        </div>
-        <div>
-            <br />
-            Dev Area
-            <br />
-            <br />
-            roundStatus: {gameState.roundStatus}
-            <br />
-            roundResult: {gameState.roundResult}
-            <br />
-            roundMessage: {gameState.roundMessage}
-        </div>
-    </>
-);
+                <button onClick={() => modifyBet(1)}>Add 1</button>
+                <button onClick={() => modifyBet(5)}>Add 5</button>
+                <button onClick={() => modifyBet(25)}>Add 25</button>
+                <button onClick={() => modifyBet(100)}>Add 100</button>
+                <button onClick={() => modifyBet('c')}>Clear</button>
+            </div>
+            <br></br>
+            <div>
+                Player Bank Roll:
+            </div>
+            <div>
+                <br />
+                Dev Area
+                <br />
+                <br />
+                roundStatus: {gameState.roundStatus}
+                <br />
+                roundResult: {gameState.roundResult}
+                <br />
+                roundMessage: {gameState.roundMessage}
+            </div>
+        </>
+    );
 }
 
 export default App;
