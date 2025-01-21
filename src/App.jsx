@@ -1,214 +1,18 @@
-import { useState, useRef, useEffect, useReducer } from "react";
+import { useReducer } from "react";
 import "./App.css";
-import { PlayerActions } from "./components/Player";
-import { Calculations } from "./components/Calculations";
-import { delay } from "motion/react";
+import { betReducer } from "../reducers/betReducer";
+import { gameReducer } from "../reducers/gameReducer";
+import { initialBetState, initialGameState, ROUND_STATUS, BET_STATUS, PLAYER_ACTIONS, BET_CIRCLE_ACTIONS
+ } from "./constants";
+import { modifyBet } from "./components/betModifications";
+import { GetHandTotal } from "./components/Calculations";
+import { initializeShoe, dealRound, drawCard, checkInitBlackjack } from "./components/roundOperations";
+
+// Pure Functions - Rely solely on teh input arguemtns and do not depend on varaiblaes defined outside its scope. 
+    // If arguments are needed, these can be passed as parameters . 
 
 
-// TODO:
-// - Some sort of display issue exists with the initial blackjack check. What shows in the console appears to be lagging behind what's on screen. 
-// - Also appears ot be incorrectly attributing a player win to a dealer blackjack at times. Check that function. 
-
-/**
- * Each 
- * @date January 19th 2025, 8:25:58 pm
- * @author Brian Fischer
- *
- */
-const ROUND_STATUS = {
-    INIT_SHOE: 'shoe_initialized',
-    ROUND_INIT: 'round_initialized',
-    INIT_HANDS: 'init_hands_dealt',
-    PLAYER_TURN_ACTIVE: 'player_turn_active',
-    DEALER_TURN_ACTIVE: 'dealer_turn_active',
-    ROUND_COMPLETE: 'round_complete'
-
-}
-
-const PLAYER_ACTIONS = {
-    PLAYER_HIT: 'player_hit',
-    PLAYER_STAND: 'player_stand',
-    PLAYER_DOUBLE_DOWN: 'player_double_down',
-    PLAYER_SPLIT: 'player_split',
-    INIT_NEW_SHOE: 'init_new_shoe',
-    INIT_NEW_ROUND: 'init_new_round'
-}
-
-const BET_CIRCLE_ACTIONS = {
-    ADD_BET: 'add_bet',
-    CLEAR_BET_CIRCLE: 'clear_bet_circle'
-}
-
-
-const initialGameState = {
-    roundStatus: "not_started",
-    roundResult: "in_progress",
-    roundMessage: "Round has not yet started.",
-    playerActionDisabled: true,
-    playerBetActionDisabled: false,
-    shoe: [],
-    shoeQuantity: 0,
-    dealerHand: [],
-    dealerScore: 0,
-    playerHand: [],
-    playerScore: 0
-}
-
-const BET_STATUS = {
-    NOT_LOCKED: "not_locked",
-    LOCKED: "locked",
-    LOST: "lost",
-    WON: "won",
-    PUSH: "push"
-}
-
-const initialBetState = {
-    betButtonsDisabled: false,
-    betCount: 0,
-    betCircle: 0,
-    bankRoll: 100,
-    payoutAmount: 0
-}
-
-
-// The betCircleReducer function is eqiupped to manage multiple cases
-// This function is called by the default useReducer 
-
-function betReducer(state, action) {
-
-    console.log("Current state:", state);
-    console.log("Action received:", action);
-
-    if (action.betStatus || action.payoutAction) {
-        switch (action.betStatus) {
-            case BET_STATUS.LOCKED:
-                return {
-                    ...state,
-                    betButtonsDisabled: true,
-                }
-            case BET_STATUS.LOST:
-                return {
-                    ...state,
-                    betButtonsDisabled: false,
-                    betCircle: 0,
-                    payoutAmount: 0
-                }
-            case BET_STATUS.WON:
-                return {
-                    ...state,
-                    betButtonsDisabled: false,
-                    betCircle: 0,
-                    payoutAmount: action.payload?.payoutAmount || state.payoutAmount,
-                    bankRoll: state.bankRoll + action.payload?.payoutAmount
-                }
-            case BET_STATUS.PUSH:
-                return {
-                    ...state,
-                    betButtonsDisabled: false,
-                    betCircle: 0,
-                    bankRoll: action.payload?.bankRoll || state.bankRoll
-                }
-            default:
-                return state
-        }
-    }
-
-    else if (action.betCircleAction) {
-        console.log("BetCircleAction if statement hit")
-        switch (action.betCircleAction) {
-            case BET_CIRCLE_ACTIONS.ADD_BET:
-                console.log("Add bet hit.")
-                return {
-                    ...state,
-                    betCircle: action.payload?.betCircle || state.betCircle,
-                    betCount: action.payload?.betCount || state.betCount,
-                    bankRoll: action.payload.bankRoll,
-                    payoutAmount: action.payload?.payoutAmount || state.payoutAmount
-                };
-            case BET_CIRCLE_ACTIONS.CLEAR_BET_CIRCLE:
-                return {
-                    ...state,
-                    betCircle: 0,
-                    bankRoll: action.payload?.bankRoll || state.bankRoll
-                };
-            default:
-                return state
-
-        }
-    }
-}
-
-
-    function gameReducer(state, action) {
-
-        // Within each case of this reducer, each game status has varying displays to put on screen. 
-        // Each game status is simply the state update to be displayed. 
-        // This manages the state, subsequent functions dictate what is fed through to each of those states. 
-        // This makes each case of the reducer more re-usable throughout the code. 
-
-        switch (action.type) {
-            case ROUND_STATUS.INIT_SHOE:
-                return {
-                    ...state,
-                    roundStatus: "shoe_initialized",
-                    roundResult: "starting_round",
-                    roundMessage: "Shoe has been initialzied, dealing cards next...",
-                    shoe: action.payload.shoe,
-                    shoeQuantity: action.payload.shoe.length,
-                    dealerHand: [],
-                    playerHand: [],
-                    playerScore: 0,
-                    dealerScore: 0
-                }
-            case ROUND_STATUS.INIT_HANDS:
-                return {
-                    ...state,
-                    roundStatus: "next_hands_dealt",
-                    dealerHand: action.payload?.dealerHand || state.dealerHand,
-                    playerHand: action.payload?.playerHand || state.playerHand,
-                    playerActionDisabled: false
-                }
-            case ROUND_STATUS.PLAYER_TURN_ACTIVE:
-                return {
-                    ...state,
-                    // optional chaining used to prevent having to provide payloads for every update.
-                    roundStatus: action.payload?.roundStatus || state.roundStatus,
-                    roundMessage: action.payload?.roundMessage || state.roundMessage,
-                    playerHand: action.payload?.playerHand || state.playerHand,
-                    playerScore: action.payload?.playerScore || state.playerScore,
-                    dealerHand: action.payload?.dealerHand || state.dealerHand,
-                    dealerScore: action.payload?.dealerScore || state.dealerScore,
-                    playerActionDisabled: false
-                }
-            case ROUND_STATUS.DEALER_TURN_ACTIVE:
-                return {
-                    ...state,
-                    roundStatus: "dealer_turn",
-                    roundResult: "in_progress",
-                    roundMessage: action.payload?.roundMessage || state.roundMessage,
-                    playerActionDisabled: true,
-                    dealerHand: action.payload?.dealerHand || state.dealerHand,
-                    dealerScore: action.payload?.dealerScore || state.dealerScore
-                }
-            case ROUND_STATUS.ROUND_COMPLETE:
-                return {
-                    ...state,
-                    roundStatus: action.payload?.roundStatus || state.roundStatus,
-                    roundResult: action.payload?.roundResult || state.roundResult,
-                    roundMessage: action.payload?.roundMessage || state.roundMessage,
-                    playerHand: action.payload?.playerHand || state.playerHand,
-                    playerScore: action.payload?.playerScore || state.playerScore,
-                    dealerHand: action.payload?.dealerHand || state.dealerHand,
-                    dealerScore: action.payload?.dealerScore || state.dealerScore,
-                    playerActionDisabled: true,
-                }
-            default:
-                return state
-        }
-    }
-
-
-    function App() {
+function App() {
 
         // Calling the useReducer function will return an array with two elements: [A, B]
         // A --> Current state of the reducer
@@ -236,7 +40,7 @@ function betReducer(state, action) {
                 switch (action.playerAction) {
                     case PLAYER_ACTIONS.PLAYER_HIT:
                         console.info("Player Hit action hit")
-                        const updatedPlayerHand = [...gameState.playerHand, drawCard()]
+                        const updatedPlayerHand = [...gameState.playerHand, drawCard(gameState.shoe)]
                         console.info("Updated Player Hand: " + updatedPlayerHand)
                         const updatedPlayerScore = GetHandTotal(updatedPlayerHand)
                         if (updatedPlayerScore > 21) {
@@ -418,7 +222,7 @@ function betReducer(state, action) {
                         // If enough cards exist, deal the round.
 
                         else {
-                            let [dealerInitHand, playerInitHand] = dealRound();
+                            let [dealerInitHand, playerInitHand] = dealRound(gameState.shoe);
                             console.info("dealerInitHand: " + dealerInitHand)
                             console.info("playerInitHand: " + playerInitHand)
                             console.info("Round Message: " + gameState.roundMessage)
@@ -526,16 +330,12 @@ function betReducer(state, action) {
                                         }
                                     }
                                 )
-
                                 dispatchBet({
                                     betStatus: BET_STATUS.LOCKED
                                 })
                                 break;
                             }
                         }
-                        break;
-
-
                         break;
                     case ROUND_STATUS.DEALER_TURN_ACTIVE:
                         //
@@ -548,211 +348,6 @@ function betReducer(state, action) {
             }
 
         }
-
-        // Betting
-
-        function modifyBet(amount) {
-            // To handle adjustments to the bank roll this must be updated here prior to being passed to the state. 
-            // Logic occurs here, state update occurs in the dispatch.
-
-
-            // Add Button gets pressed, then what?
-            // Check if the current bet_circle + amount being added is less than the bank roll
-            // if true, then update the reducer with that amount subtracted from the bank roll.. 
-            // if false, then alert that the bet amount would be higher than the bank roll. Don't call the reducer. 
-            // Clear button gets pressed, then what?
-            // If current bet_circle is 0, do nothing. 
-            // if it has a value > 0, take that amount and call the betreducer to update the bank roll, then clear the betCircle.     
-
-
-
-            if (amount != 'c') {
-                if (amount < betState.bankRoll) {
-                    console.log("bet is valid and can pass through.")
-                    console.log("proposed bet is: " + (amount + betState.betCircle))
-                    console.log("bankRoll is: " + betState.bankRoll)
-                    const updatedBetCircle = betState.betCircle + amount
-                    const updatedBankRoll = betState.bankRoll - amount
-                    dispatchBet(
-                        {
-                            betCircleAction: BET_CIRCLE_ACTIONS.ADD_BET,
-                            payload: {
-                                bankRoll: updatedBankRoll,
-                                betCircle: updatedBetCircle
-                            }
-                        }
-                    )
-                }
-                else if (amount === betState.bankRoll) {
-                    const updatedBetCircle = betState.betCircle + amount
-                    dispatchBet(
-                        {
-                            betCircleAction: BET_CIRCLE_ACTIONS.ADD_BET,
-                            payload: {
-                                bankRoll: 0,
-                                betCircle: updatedBetCircle
-                            }
-                        }
-                    )
-                }
-                else {
-                    console.error("Proposed bet amount is higher than bank roll")
-                }
-            }
-            else {
-                if (betState.betCircle != 0) {
-                    const updatedBankRoll = betState.bankRoll + betState.betCircle
-                    dispatchBet(
-                        {
-                            betCircleAction: BET_CIRCLE_ACTIONS.CLEAR_BET_CIRCLE,
-                            payload: {
-                                bankRoll: updatedBankRoll
-                            }
-                        }
-                    )
-                }
-            }
-        }
-
-
-
-
-
-    // Payouts
-
-
-    // Return a new shoe
-    function initializeShoe(deckQuantity = 6) {
-        const singleDeck = [
-            "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K",
-            "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K",
-            "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K",
-            "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K",
-        ];
-
-        let initShoe = [];
-        for (let i = 0; i < deckQuantity; i++) initShoe = initShoe.concat(singleDeck);
-
-        // Shuffle the shoe
-        for (let i = initShoe.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [initShoe[i], initShoe[j]] = [initShoe[j], initShoe[i]];
-        };
-        console.log("Shoe initialized:", initShoe);
-
-        return initShoe;
-    }
-
-
-
-    /**
-     * Deals initial round of cards for dealer and player. 
-     * @date January 19th 2025, 9:27:28 pm
-     * @author Brian Fischer
-     *
-     * @returns {[]} - Retuns an array of arrays of player/dealer cards [[d1, d2,], [p1, p2]] 
-     */
-    function dealRound() {
-        console.info("DealRound hit")
-        let dealerInitHand = [drawCard(), drawCard()]
-        let playerInitHand = [drawCard(), drawCard()]
-        return [dealerInitHand, playerInitHand]
-    }
-
-    /**
-     * Draws a card from the shoe and returns the drawnCard
-     * @date January 19th 2025, 7:38:00 pm
-     * @author Brian Fischer
-     *
-     * @returns {*} 
-     */
-    function drawCard() {
-        const drawnCard = gameState.shoe.shift();
-        return drawnCard;
-    }
-
-
-
-
-    // Hand-specific functions
-    // Helper: Determine if the hand has busted or not. 
-    // function handBust(hand_array) {
-    //     // evalutes to t/f
-    //     // t === hand total > 21
-    //     // f === hand total <= 21
-
-    //     if (GetHandTotal(hand_array) > 21) {
-    //         return true
-    //     }
-    //     else {
-    //         return false
-    //     }
-
-    // }
-
-    // Helper: Determine if the dealer is supposed to stand. 
-    // function dealerStand(hand_array) {
-    //     // evals to t/f --> "Should the dealer stand?"
-    //     // t === dealer is equal to or greater than  17. 
-    //     // f === dealer is less than 17. 
-
-    //     // Note: Being over 21 is irrelevant here, only looking to determine if the dealer is supposed to stand. 
-
-    //     // TODO: Account for hard/soft 17, make it a switch that can be turned on and off. 
-
-    //     if (GetHandTotal(hand_array) < 17) {
-    //         return false
-    //     } else {
-    //         return true
-    //     }
-    // }
-
-    /**
-     * Helper: Determine if dealer or player was a dealt a blackjack on the round's initial two cards
-     * @param {array} hand_array - 2 item array representing player or dealer hand. 
-     * @returns {boolean} - returns true if hand_array === 21, else false 
-     */
-    function checkInitBlackjack(hand_array) {
-        if (GetHandTotal(hand_array) === 21) {
-            return true
-        }
-        else {
-            return false
-        }
-    }
-
-    // Helper: Calculate hand total dynamically
-    function GetHandTotal(handArray) {
-        if (!handArray.length) return 0;
-
-        let aceCount = handArray.filter((card) => card === "A").length;
-        let handTotal = handArray.reduce((total, card) => total + GetCardValue(card), 0);
-
-        // Adjust for aces
-        while (handTotal > 21 && aceCount > 0) {
-            handTotal -= 10;
-            aceCount -= 1;
-        }
-        return handTotal;
-    }
-
-
-    // Helper: Get card value
-    function GetCardValue(card) {
-        if (card === "A") return 11;
-        if (["K", "Q", "J", "10"].includes(card)) return 10;
-        return parseInt(card, 10);
-    }
-
-
-
-
-
-    // OnClick function call must be passed as a reference; () => modifyBet(1)
-    // This ensures 
-
-
-
 
     return (
         <>
@@ -777,7 +372,7 @@ function betReducer(state, action) {
             </div>
             <br />
             <div>
-                {/* Shoe Size: {gameState.shoeQuantity} */}
+                Shoe Size: {gameState.shoeQuantity}
 
             </div>
 
@@ -800,16 +395,20 @@ function betReducer(state, action) {
                 Bet Circle: {betState.betCircle}
 
             </div>
+            <br />
+            <div>
+                <button>Repeat Bet & Deal Next Round</button>
+            </div>
             <br></br>
             <div>
                 {/* Call a function reference, rather than invoking it immediately. 
                 Referencing it only calls the function with the event, button click, occurs. 
                 Otherwise the function wil be called every time a render is done.   */}
-                <button onClick={() => modifyBet(1)} disabled={betState.betButtonsDisabled}>Add 1</button>
-                <button onClick={() => modifyBet(5)} disabled={betState.betButtonsDisabled}>Add 5</button>
-                <button onClick={() => modifyBet(25)} disabled={betState.betButtonsDisabled}>Add 25</button>
-                <button onClick={() => modifyBet(100)} disabled={betState.betButtonsDisabled}>Add 100</button>
-                <button onClick={() => modifyBet('c')} disabled={betState.betButtonsDisabled}>Clear</button>
+                <button onClick={() => modifyBet(1, betState, dispatchBet)} disabled={betState.betButtonsDisabled}>Add 1</button>
+                <button onClick={() => modifyBet(5, betState, dispatchBet)} disabled={betState.betButtonsDisabled}>Add 5</button>
+                <button onClick={() => modifyBet(25, betState, dispatchBet)} disabled={betState.betButtonsDisabled}>Add 25</button>
+                <button onClick={() => modifyBet(100, betState, dispatchBet)} disabled={betState.betButtonsDisabled}>Add 100</button>
+                <button onClick={() => modifyBet('c', betState, dispatchBet)} disabled={betState.betButtonsDisabled}>Clear</button>
             </div>
             <br></br>
             <div>
