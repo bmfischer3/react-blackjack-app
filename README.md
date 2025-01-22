@@ -59,12 +59,17 @@ States Being Managed:
 4. Player Bet Selection
 5. Player Bet Circle
 6. Round Status
-7. Round Result 
+7. Round Result
 8. Round Message
 9. Shoe Card Quantity
-10. Button availability
 
 
+
+(For later implementation)...
+1. Card Count Quantity
+2. True Card Count
+3. Player Correct Decisions
+4. 
 
 Hierarchy of State Management
 1. Round Result --> useReducer
