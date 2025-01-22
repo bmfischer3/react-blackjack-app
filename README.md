@@ -8,6 +8,27 @@ Currently, two official plugins are available:
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 # react-blackjack-app
 
+## Things learned with this project
+1. Breaking up into separate components after establishing a mvp is probably a good idea. 
+2. Debugging is best done by walking through it step by step, what's called and what's passed and talking through it. 
+3. Simple, pure functions are generally better --> No outside dependencies that aren't passed as arguments, and produce a single result.
+4. When using a dispatch function and a switch-case on the downstream event, 'type' must match in the downstream function. If defined as 'type' it must follow if (action.type) if 'action' is the specified argument after 'state' for the dispatch function.
+5. Don't do a main function, shit gets complciated too fast. Keep it simple and break things down to smaller components that can be imported/exported. 
+6. Pay attention to what functions need access to. If a reducer is in teh main file, but there's a secondary function elsewhere that calls the dispatcher, the dispatcher has to be passed to that outer function as an argument. Check for multiple dispatchers.  
+
+
+Curly braces because it's a javascript expression. 
+                Secondly, betState is the current state object managed by the reducer hook. 
+                betCount is the property of that state. 
+                Thus, {state.property} is a dynamicaly rendered value.
+
+betState is the object holding the current state of the reducer. 
+
+                betCount is a key within betState that holds teh numeric value of the player's current bet.
+
+                {betState.betCount} retrieves the value of betCount from betState and injects it into the JSX.
+
+
 
 ## Data Structures
 
